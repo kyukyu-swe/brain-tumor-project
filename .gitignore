@@ -1,0 +1,20 @@
+# secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Mac
+.DS_Store
+
+# data (too big for GitHub; each member downloads from Kaggle)
+data/samples/*/
+
+# old unzipped copy of the model (safe to delete)
+model/best_model/
+
+# test outputs
+heatmap_test.png

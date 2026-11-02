@@ -1,0 +1,76 @@
+{
+  "_note": "The LLM may ONLY use the facts in this file. Before the presentation, the group must check every line against the sources below and set reviewed_by_group to true.",
+  "_reviewed_by_group": false,
+  "_sources": [
+    "National Cancer Institute (cancer.gov): Brain tumors / Adult central nervous system tumors",
+    "Mayo Clinic: Glioma, Meningioma, Pituitary tumors (patient pages)",
+    "Cleveland Clinic: Glioma, Meningioma, Pituitary adenoma (patient pages)",
+    "Add the exact URLs your group used here"
+  ],
+
+  "glioma": {
+    "name": "Glioma",
+    "what_it_is": "A tumor that starts from glial cells, the cells that support and protect nerve cells in the brain.",
+    "behavior": "Gliomas can be slow-growing (low grade) or fast-growing (high grade). The grade can only be confirmed by testing a tissue sample (biopsy) under a microscope.",
+    "usual_location": "Inside the brain tissue itself.",
+    "visual_clues_on_mri": "Often an irregular shape inside the brain tissue. On contrast MRI, higher-grade gliomas may show a bright ring with a darker center. Nearby tissue may be swollen, and the ventricles (dark fluid spaces in the middle) may be pushed out of shape.",
+    "common_symptoms": "Headaches, seizures, changes in memory, personality, speech or vision, weakness on one side of the body. Symptoms depend on where the tumor is.",
+    "usual_next_steps": "Doctors usually do more imaging and often a biopsy or surgery to confirm the type and grade. Treatment may include surgery, radiation therapy and chemotherapy, decided by a specialist team.",
+    "questions_for_doctor": [
+      "What grade is the tumor, and how was this confirmed?",
+      "Is surgery possible, and what are the risks?",
+      "What treatments do you recommend, and what are the side effects?",
+      "How will this affect my daily life, work or driving?",
+      "How often will I need follow-up scans?"
+    ]
+  },
+
+  "meningioma": {
+    "name": "Meningioma",
+    "what_it_is": "A tumor that grows from the meninges, the thin layers of tissue that cover the brain and spinal cord.",
+    "behavior": "Most meningiomas are non-cancerous (benign) and grow slowly. Some are found by chance and cause no symptoms. A small number are more aggressive.",
+    "usual_location": "On the surface of the brain, attached to the covering just under the skull. It pushes on the brain from outside instead of growing inside it.",
+    "visual_clues_on_mri": "Usually a round, smooth, well-defined mass at the edge of the brain, touching the skull lining. On contrast MRI it is often evenly bright.",
+    "common_symptoms": "Many cause no symptoms. When they do: headaches, vision problems, hearing loss, memory problems, seizures or weakness, depending on location and size.",
+    "usual_next_steps": "Small meningiomas without symptoms are often watched with regular scans. Larger ones or ones causing symptoms may be treated with surgery or radiation therapy.",
+    "questions_for_doctor": [
+      "Does this tumor need treatment now, or can we watch it with scans?",
+      "How fast is it growing?",
+      "If surgery is needed, can all of it be removed?",
+      "What symptoms should make me contact you quickly?",
+      "How often should I have follow-up MRI scans?"
+    ]
+  },
+
+  "pituitary": {
+    "name": "Pituitary tumor",
+    "what_it_is": "A growth in the pituitary gland, a small gland at the base of the brain that controls many hormones in the body.",
+    "behavior": "Most pituitary tumors are non-cancerous (benign) adenomas. Some make extra hormones; others cause problems by pressing on nearby structures.",
+    "usual_location": "At the base of the brain, in the middle, just above the back of the nose and close to the nerves that carry vision.",
+    "visual_clues_on_mri": "A mass in the middle at the base of the brain, in the area of the pituitary gland (the sella). It is easiest to see in side (sagittal) or front (coronal) views. Large ones may grow upward toward the optic nerves.",
+    "common_symptoms": "Vision problems (especially side vision), headaches, and hormone-related changes such as tiredness, weight change, or changes in periods or growth, depending on the hormone involved.",
+    "usual_next_steps": "Doctors usually check hormone levels with blood tests and test vision. Treatment may include medicine, surgery (often through the nose), or radiation therapy, decided by specialists such as an endocrinologist and a neurosurgeon.",
+    "questions_for_doctor": [
+      "Is the tumor making extra hormones?",
+      "Is it pressing on my optic nerves? Do I need a vision test?",
+      "Can medicine treat it, or do I need surgery?",
+      "Will I need hormone treatment long-term?",
+      "How often do I need follow-up tests?"
+    ]
+  },
+
+  "notumor": {
+    "name": "No tumor detected",
+    "what_it_is": "The AI did not find a pattern that looks like one of the three tumor types it was trained on.",
+    "behavior": "This does not rule out other brain conditions, and the AI can miss tumors. Only a doctor reading the full scan can confirm a normal result.",
+    "usual_location": "Not applicable.",
+    "visual_clues_on_mri": "A healthy brain usually looks roughly symmetric (left and right sides look like a mirror image), with no unusual bright blob or ring, and the ventricles in a normal shape.",
+    "common_symptoms": "Not applicable.",
+    "usual_next_steps": "Follow your doctor's advice. If you still have symptoms, tell your doctor even if a scan looked normal.",
+    "questions_for_doctor": [
+      "Does the full scan look normal to you?",
+      "What could be causing my symptoms?",
+      "Do I need any other tests?"
+    ]
+  }
+}
