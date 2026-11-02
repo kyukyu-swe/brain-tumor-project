@@ -33,7 +33,8 @@ from types import SimpleNamespace
 import gradio as gr
 from dotenv import load_dotenv
 
-from core.llm import LANGUAGES, explain
+from core.languages import LANGUAGES, SUGGESTED, languages_json
+from core.llm import explain
 from core.predictor import (DISPLAY_NAMES, MIN_CONFIDENCE, MIN_MARGIN, NOTUMOR_TRUST,
                             PRIORITY_HIGH, PRIORITY_MEDIUM, TumorPredictor)
 
@@ -190,7 +191,7 @@ def api_explain(result, language="English", mode="patient"):
 
 def api_info():
     return {"model": predictor.model_name, "test_accuracy": predictor.test_accuracy,
-            "languages": LANGUAGES, "classes": CLASSES}
+            "languages": languages_json(), "suggested": SUGGESTED, "classes": CLASSES}
 
 
 # ------------------------------------------------------------ About text
@@ -239,7 +240,7 @@ with gr.Blocks(title="Brain Tumor MRI Assistant") as demo:
                 t_note = gr.Markdown()
         with gr.Accordion("Explain this scan to the patient", open=False):
             with gr.Row():
-                t_lang = gr.Dropdown(LANGUAGES, value="English", label="Patient's language")
+                t_lang = gr.Dropdown(LANGUAGES, value="English", label="Patient's language (type to search)", filterable=True)
                 t_explain = gr.Button("Make patient explanation")
             t_patient = gr.Markdown()
         t_gallery = gr.Gallery(label="All heatmaps (same order)", columns=6, height="auto")
@@ -255,7 +256,7 @@ with gr.Blocks(title="Brain Tumor MRI Assistant") as demo:
         with gr.Row():
             with gr.Column():
                 p_img = gr.Image(type="pil", label="MRI image")
-                p_lang = gr.Dropdown(LANGUAGES, value="English", label="Language")
+                p_lang = gr.Dropdown(LANGUAGES, value="English", label="Language (type to search)", filterable=True)
                 p_btn = gr.Button("Explain", variant="primary")
                 if EXAMPLES:
                     gr.Examples(EXAMPLES, inputs=[p_img], label="Try a sample")

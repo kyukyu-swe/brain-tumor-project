@@ -24,7 +24,7 @@ FACTS_PATH = Path(__file__).with_name("tumor_facts.json")
 FACTS = json.loads(FACTS_PATH.read_text(encoding="utf-8"))
 
 DEFAULT_MODEL = "gemini-flash-latest"
-LANGUAGES = ["English", "Thai", "Burmese (Myanmar)", "Japanese"]
+from core.languages import LANGUAGES  # noqa: E402  (full list + beta flags in core/languages.py)
 MODES = ["patient", "student", "doctor_note"]
 
 SYSTEM_RULES = """You are a careful medical-education assistant inside a student project demo.
@@ -35,6 +35,8 @@ Rules you must follow:
 4. If the model is unsure (refer = true), say clearly that the result is uncertain and a specialist should check it.
 5. Write in simple, common words. Short sentences. No jargon unless you explain it.
 6. Write the whole answer in the requested LANGUAGE.
+7. The first time you name the tumor type, also give the English name in brackets, e.g. "เนื้องอกเยื่อหุ้มสมอง (Meningioma)",
+   so the patient can show it to a doctor.
 """
 
 MODE_INSTRUCTIONS = {

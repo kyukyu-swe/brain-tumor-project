@@ -1,6 +1,6 @@
 import { Client, handle_file } from "./vendor/gradio-client.js";
 import { marked } from "./vendor/marked.esm.js";
-import { BACKEND, LANGUAGES, MAX_TRIAGE_FILES } from "./config.js";
+import { BACKEND, FALLBACK_LANGUAGES, SUGGESTED_LANGUAGES, MAX_TRIAGE_FILES } from "./config.js";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -14,6 +14,8 @@ const PRIORITY_ICON = { High: "🔴", Medium: "🟠", Low: "🟢" };
 
 /* ------------------------------------------------------------------ backend */
 let client = null;
+let LANGS = FALLBACK_LANGUAGES;          // replaced by the full list from the backend (/info)
+let SUGGESTED = SUGGESTED_LANGUAGES;
 let connecting = null;
 
 function setStatus(state, text) {
@@ -33,6 +35,13 @@ async function connect() {
       setStatus("ready", "AI ready");
       try {
         const info = (await c.predict("/info", [])).data[0];
+        if (Array.isArray(info.languages) && info.languages.length) {
+          // older backends send plain names; newer ones send objects
+          LANGS = info.languages.map((l) => (typeof l === "string"
+            ? (FALLBACK_LANGUAGES.find((f) => f.name === l) || { name: l, native: l, code: "", official: true, rtl: false })
+            : l));
+        }
+        if (Array.isArray(info.suggested)) SUGGESTED = info.suggested;
         $("#aboutModel").textContent =
           `Our model (${info.model}) looks at one MRI slice and gives the chance of glioma, meningioma, ` +
           `pituitary tumor, or no tumor. Test accuracy: ${(info.test_accuracy * 100).toFixed(2)}%.`;
@@ -166,15 +175,131 @@ function activateResult(root) {
 
 const skeleton = `<div class="skeleton"><div></div><div></div><div></div></div>`;
 
-function langChips(container, initial = "English") {
-  container.innerHTML = LANGUAGES.map((l) =>
-    `<button class="chip ${l.value === initial ? "active" : ""}" data-lang="${esc(l.value)}">${esc(l.label)}</button>`).join("");
-  container.addEventListener("click", (e) => {
-    const chip = e.target.closest(".chip");
-    if (!chip) return;
-    $$(".chip", container).forEach((c) => c.classList.toggle("active", c === chip));
+/* ------------------------------------------------------------------ language picker */
+const fold = (x) => String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const langByName = (n) => LANGS.find((l) => l.name === n);
+function savedLang() {
+  try { return localStorage.getItem("lang") || "English"; } catch { return "English"; }
+}
+function saveLang(n) {
+  try { localStorage.setItem("lang", n); } catch { /* storage may be blocked */ }
+}
+
+const openPickers = new Set();
+document.addEventListener("click", (e) => openPickers.forEach((p) => !p.root.contains(e.target) && p.close()));
+
+function langPicker(root) {
+  let selected = savedLang();
+  let items = [];       // currently shown options (for keyboard navigation)
+  let active = -1;
+  root.innerHTML = `
+    <button type="button" class="lp-button" aria-haspopup="listbox" aria-expanded="false">
+      <span class="lp-globe">🌐</span><span class="lp-label"></span><span class="lp-caret">▾</span>
+    </button>
+    <div class="lp-panel" role="dialog">
+      <div class="lp-search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="text" placeholder="Search: Thai, ไทย, th…" aria-label="Search language" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="lp-list" role="listbox"></div>
+    </div>
+    <div class="lp-beta hidden">⚠️ <b>Beta language:</b> Gemini does not officially support it. Please ask a native speaker to check the text.</div>`;
+  const btn = $(".lp-button", root), panel = $(".lp-panel", root), input = $("input", root), list = $(".lp-list", root);
+  const api = { root, close, get: () => selected, info: () => langByName(selected) || { name: selected, rtl: false, official: true } };
+
+  function label() {
+    const l = api.info();
+    $(".lp-label", root).innerHTML = `<b><bdi>${esc(l.native || l.name)}</bdi></b>${l.native && l.native !== l.name ? `<small>${esc(l.name)}</small>` : ""}`;
+    $(".lp-beta", root).classList.toggle("hidden", l.official !== false);
+  }
+  function option(l) {
+    return `<div class="lp-option ${l.name === selected ? "selected" : ""}" role="option" data-name="${esc(l.name)}"
+              aria-selected="${l.name === selected}">
+      <bdi class="lp-native">${esc(l.native)}</bdi>
+      <span class="lp-en">${l.native !== l.name ? esc(l.name) : ""}</span>
+      ${l.official === false ? '<span class="lp-tag">beta</span>' : ""}
+      ${l.name === selected ? '<span class="lp-check">✓</span>' : ""}
+    </div>`;
+  }
+  function render() {
+    const q = fold(input.value.trim());
+    let html = "";
+    if (!q) {
+      const sug = SUGGESTED.map(langByName).filter(Boolean);
+      const official = LANGS.filter((l) => l.official !== false).sort((a, b) => a.name.localeCompare(b.name));
+      const beta = LANGS.filter((l) => l.official === false);
+      html = `<div class="lp-group">Suggested</div>${sug.map(option).join("")}` +
+             `<div class="lp-group">All supported languages (${official.length})</div>${official.map(option).join("")}` +
+             (beta.length ? `<div class="lp-group">Beta — please check with a native speaker</div>${beta.map(option).join("")}` : "");
+    } else {
+      // rank: exact code > name/native starts with the text > contains the text
+      const score = (l) => {
+        const n = fold(l.name), nat = fold(l.native), c = fold(l.code);
+        if (c === q) return 0;
+        if (n.startsWith(q) || nat.startsWith(q)) return 1;
+        if (n.split(/[\s()]+/).some((w) => w.startsWith(q))) return 2;
+        if (n.includes(q) || nat.includes(q) || c.startsWith(q)) return 3;
+        return 9;
+      };
+      const hits = LANGS.map((l) => [score(l), l]).filter(([sc]) => sc < 9)
+        .sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name)).map(([, l]) => l);
+      html = hits.length ? hits.map(option).join("") : `<div class="lp-empty">No language found for “${esc(input.value)}”</div>`;
+    }
+    list.innerHTML = html;
+    items = $$(".lp-option", list);
+    active = Math.max(0, items.findIndex((x) => x.dataset.name === selected));
+    if (q) active = 0;
+    highlight(false);
+  }
+  function highlight(scroll = true) {
+    items.forEach((x, i) => x.classList.toggle("active", i === active));
+    if (scroll && items[active]) items[active].scrollIntoView({ block: "nearest" });
+  }
+  function open() {
+    openPickers.forEach((p) => p !== api && p.close());
+    input.value = "";
+    render();
+    // open upwards if there is not enough space below
+    const r = btn.getBoundingClientRect();
+    const below = window.innerHeight - r.bottom, above = r.top;
+    root.classList.toggle("up", below < 360 && above > below);
+    root.classList.add("open");
+    btn.setAttribute("aria-expanded", "true");
+    openPickers.add(api);
+    setTimeout(() => { input.focus(); items[active]?.scrollIntoView({ block: "center" }); }, 60);
+  }
+  function close() {
+    root.classList.remove("open");
+    btn.setAttribute("aria-expanded", "false");
+    openPickers.delete(api);
+  }
+  function choose(name) {
+    selected = name;
+    saveLang(name);
+    label();
+    close();
+    btn.classList.add("bump");
+    setTimeout(() => btn.classList.remove("bump"), 400);
+  }
+
+  btn.addEventListener("click", () => (root.classList.contains("open") ? close() : open()));
+  input.addEventListener("input", render);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(items.length - 1, active + 1); highlight(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(0, active - 1); highlight(); }
+    else if (e.key === "Enter") { e.preventDefault(); if (items[active]) choose(items[active].dataset.name); }
+    else if (e.key === "Escape") { close(); btn.focus(); }
   });
-  return () => $(".chip.active", container)?.dataset.lang || "English";
+  list.addEventListener("click", (e) => { const o = e.target.closest(".lp-option"); if (o) choose(o.dataset.name); });
+  label();
+  api.refresh = label;          // call again after the full language list arrives
+  return api;
+}
+
+function explainHTML(text, lang) {
+  const beta = lang.official === false
+    ? `<p class="beta-note">⚠️ ${esc(lang.name)} is a beta language — please ask a native speaker to check this text.</p>` : "";
+  return `<div class="explain" dir="${lang.rtl ? "rtl" : "ltr"}" lang="${esc(lang.code || "")}">${md(text)}${beta}</div>`;
 }
 
 /* ------------------------------------------------------------------ tabs */
@@ -200,7 +325,7 @@ async function sampleBlob(item) {
 }
 
 /* ------------------------------------------------------------------ PATIENT view */
-const patient = { file: null, getLang: () => "English" };
+const patient = { file: null, lang: null };
 
 function setPatientFile(file) {
   patient.file = file;
@@ -211,7 +336,7 @@ function setPatientFile(file) {
 }
 
 function initPatient() {
-  patient.getLang = langChips($("#patientLangs"));
+  patient.lang = langPicker($("#patientLangs"));
   makeDropzone($("#patientDrop"), $("#patientInput"), (files) => files[0] && setPatientFile(files[0]));
   $("#patientPreview").addEventListener("click", () => {
     if (!$("#patientRun").classList.contains("loading")) $("#patientInput").click();
@@ -250,8 +375,9 @@ async function runPatient() {
     activateResult(out);
     mark(1, "done"); mark(2, "doing");
     if (window.innerWidth < 880) out.scrollIntoView({ behavior: "smooth", block: "start" });
-    const text = await explain(r, patient.getLang(), "patient");
-    $("#patientExplain").innerHTML = `<div class="explain">${md(text)}</div>`;
+    const lang = patient.lang.info();
+    const text = await explain(r, lang.name, "patient");
+    $("#patientExplain").innerHTML = explainHTML(text, lang);
     mark(2, "done");
   } catch (e) {
     console.error(e);
@@ -354,11 +480,11 @@ function openDrawer(x) {
     <p class="section-title">📝 Draft note for the doctor</p>
     <div class="note-box" id="drawerNote">${skeleton}</div>
     <p class="section-title">💙 Explain to the patient</p>
-    <div class="chips" id="drawerLangs"></div>
+    <div class="lang-picker" id="drawerLangs"></div>
     <div class="actions"><button class="btn btn-primary" id="drawerExplain"><span class="btn-icon">💬</span><span class="spinner"></span>Make patient explanation</button></div>
     <div id="drawerPatient"></div>`;
   activateResult(body);
-  const getLang = langChips($("#drawerLangs"));
+  const picker = langPicker($("#drawerLangs"));
   $("#drawer").classList.add("open");
   $("#backdrop").classList.add("open");
   $("#drawer").setAttribute("aria-hidden", "false");
@@ -372,8 +498,9 @@ function openDrawer(x) {
     setLoading(b, true, "Writing…");
     $("#drawerPatient").innerHTML = skeleton;
     try {
-      const t = await explain(x.r, getLang(), "patient");
-      $("#drawerPatient").innerHTML = `<div class="explain">${md(t)}</div>`;
+      const lang = picker.info();
+      const t = await explain(x.r, lang.name, "patient");
+      $("#drawerPatient").innerHTML = explainHTML(t, lang);
     } catch (e) {
       $("#drawerPatient").innerHTML = "";
       toast(`Could not make the explanation: ${e.message || e}`, true);
@@ -414,4 +541,4 @@ $("#status").addEventListener("click", () => { if (!client) connect().catch(() =
 await loadSamples();
 initTriage();
 initPatient();
-connect().catch((e) => console.error("connect failed", e));
+connect().then(() => patient.lang?.refresh()).catch((e) => console.error("connect failed", e));
