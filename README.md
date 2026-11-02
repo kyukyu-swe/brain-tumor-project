@@ -20,12 +20,16 @@ brain_tumor_project/
 │   └── tumor_facts.json                  ← checked facts the LLM is allowed to use
 ├── scripts/
 │   ├── test_core.py                      ← quick test of Part B
-│   ├── deploy_to_hf.py                   ← one-command deploy to Hugging Face
+│   ├── deploy_cloudrun.sh                ← one-command deploy of the backend to Google Cloud Run
+│   ├── deploy_to_hf.py                   ← (alternative) deploy to Hugging Face
 │   └── shrink_model.py                   ← halve the model file size (GitHub limit is 100 MB)
 ├── data/samples/                         ← Kaggle Testing images (see data/README.md)
-├── app.py                                ← final app: Triage + Patient explainer tabs
-├── deploy/                               ← Hugging Face Space settings (README card, requirements, packages)
-├── DEPLOY_GUIDE.md                       ← how to host the app for free
+├── app.py                                ← AI backend (Gradio): model API + simple built-in UI
+├── web/                                  ← the website (HTML/CSS/JS) — calls the backend API
+├── Dockerfile, .gcloudignore             ← container for Google Cloud Run (the backend)
+├── deploy/cloudrun/requirements.txt      ← Python packages inside the container
+├── deploy/                               ← (alternative) Hugging Face Space settings
+├── DEPLOY_GUIDE.md                       ← how to host for free: backend on Cloud Run, website on Vercel
 ├── requirements.txt
 └── .env.example                          ← copy to .env and add your Gemini key
 ```
@@ -47,6 +51,20 @@ python scripts/test_core.py data/samples/glioma/<any-image>.jpg
 python scripts/test_core.py data/samples/glioma/<any-image>.jpg --llm --language Thai
 ```
 
+## Run the website on your laptop
+
+Two terminals:
+```bash
+# terminal 1 — AI backend
+source .venv/bin/activate
+python app.py
+
+# terminal 2 — website
+cd web
+python -m http.server 5173
+```
+Open http://localhost:5173 . (The backend's own simple UI is still at http://127.0.0.1:7860.)
+
 ## Run the app
 
 ```bash
@@ -55,7 +73,7 @@ python app.py
 Open http://127.0.0.1:7860. Tabs: **1. Triage list** (hospital staff) and **2. Understand my scan** (patients).
 Without a Gemini key the app still works and shows the fact sheet instead of the LLM text.
 
-To host it for free, see [DEPLOY_GUIDE.md](DEPLOY_GUIDE.md).
+To host it for free (Cloud Run + Vercel), see [DEPLOY_GUIDE.md](DEPLOY_GUIDE.md).
 
 ## How the safety rule works (core/predictor.py)
 

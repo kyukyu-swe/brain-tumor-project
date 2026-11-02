@@ -1,0 +1,8 @@
+# Python packages for the Cloud Run container (PyTorch is installed separately, CPU-only).
+timm>=1.0
+grad-cam>=1.5
+numpy
+pillow
+google-genai>=1.0
+python-dotenv
+gradio==6.30.0

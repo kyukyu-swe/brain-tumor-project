@@ -1,0 +1,98 @@
+[
+ {
+  "file": "Te-gl_264.jpg",
+  "label": "glioma"
+ },
+ {
+  "file": "Te-gl_2.jpg",
+  "label": "glioma"
+ },
+ {
+  "file": "Te-gl_286.jpg",
+  "label": "glioma"
+ },
+ {
+  "file": "Te-gl_377.jpg",
+  "label": "glioma"
+ },
+ {
+  "file": "Te-gl_142.jpg",
+  "label": "glioma"
+ },
+ {
+  "file": "Te-gl_163.jpg",
+  "label": "glioma"
+ },
+ {
+  "file": "Te-me_259.jpg",
+  "label": "meningioma"
+ },
+ {
+  "file": "Te-aug-me_49.jpg",
+  "label": "meningioma"
+ },
+ {
+  "file": "Te-me_190.jpg",
+  "label": "meningioma"
+ },
+ {
+  "file": "Te-me_260.jpg",
+  "label": "meningioma"
+ },
+ {
+  "file": "Te-aug-me_34.jpg",
+  "label": "meningioma"
+ },
+ {
+  "file": "Te-me_246.jpg",
+  "label": "meningioma"
+ },
+ {
+  "file": "Te-no_187.jpg",
+  "label": "notumor"
+ },
+ {
+  "file": "Te-no_128.jpg",
+  "label": "notumor"
+ },
+ {
+  "file": "Te-no_136.jpg",
+  "label": "notumor"
+ },
+ {
+  "file": "Te-no_305.jpg",
+  "label": "notumor"
+ },
+ {
+  "file": "Te-no_47.jpg",
+  "label": "notumor"
+ },
+ {
+  "file": "Te-no_63.jpg",
+  "label": "notumor"
+ },
+ {
+  "file": "Te-pi_21.jpg",
+  "label": "pituitary"
+ },
+ {
+  "file": "Te-pi_156.jpg",
+  "label": "pituitary"
+ },
+ {
+  "file": "Te-pi_351.jpg",
+  "label": "pituitary"
+ },
+ {
+  "file": "Te-pi_252.jpg",
+  "label": "pituitary"
+ },
+ {
+  "file": "Te-pi_140.jpg",
+  "label": "pituitary"
+ },
+ {
+  "file": "Te-pi_353.jpg",
+  "label": "pituitary"
+ }
+]

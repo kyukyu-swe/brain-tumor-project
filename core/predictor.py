@@ -8,6 +8,7 @@ Usage:
     print(result.label, result.confidence, result.refer, result.reasons)
     result.heatmap   # PIL image with the Grad-CAM overlay
 """
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -89,6 +90,9 @@ class TumorPredictor:
         self.model_name = ckpt["model_name"]
         self.cam_layer = ckpt.get("cam_layer", "conv_head")
         self.cam = GradCAM(model=self.model, target_layers=[self.model.get_submodule(self.cam_layer)])
+        # Grad-CAM keeps hooks and saved gradients on this one object, so two requests at the
+        # same time would overwrite each other. The lock makes predictions run one at a time.
+        self._lock = threading.Lock()
 
     # ------------------------------------------------------------------
     @staticmethod
@@ -124,6 +128,10 @@ class TumorPredictor:
 
     # ------------------------------------------------------------------
     def predict(self, image, with_heatmap=True) -> PredictionResult:
+        with self._lock:
+            return self._predict(image, with_heatmap)
+
+    def _predict(self, image, with_heatmap) -> PredictionResult:
         img = self._load(image)
         x = self.transform(img).unsqueeze(0).to(self.device)
 

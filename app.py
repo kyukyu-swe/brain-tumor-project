@@ -23,9 +23,12 @@ except ImportError:
         return fn
 # (`spaces` must be imported before torch, so this block is at the very top.)
 
+import base64
+import io
 import os
 import random
 from pathlib import Path
+from types import SimpleNamespace
 
 import gradio as gr
 from dotenv import load_dotenv
@@ -148,6 +151,48 @@ def patient_explain(image, language):
     return result_markdown(r), r.heatmap, r.probs, explain(r, language=language, mode="patient")
 
 
+# ------------------------------------------------------------ JSON API (used by the custom website in web/)
+def _b64(img):
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def api_analyze(image):
+    """MRI image -> prediction as JSON, with the resized image and the heatmap as base64 PNG."""
+    if image is None:
+        raise gr.Error("No image received.")
+    r = predict_one(image)
+    return {
+        "label": r.label, "display_name": r.display_name, "confidence": r.confidence,
+        "probs": r.probs, "p_tumor": r.p_tumor, "priority": r.priority,
+        "refer": r.refer, "reasons": r.reasons,
+        "image": _b64(r.image), "heatmap": _b64(r.heatmap),
+    }
+
+
+def api_explain(result, language="English", mode="patient"):
+    """Prediction JSON (from api_analyze) + language + mode -> explanation text (Markdown)."""
+    if not isinstance(result, dict) or result.get("label") not in CLASSES:
+        raise gr.Error("Invalid prediction.")
+    if mode not in ("patient", "doctor_note"):
+        mode = "patient"
+    if language not in LANGUAGES:
+        language = "English"
+    r = SimpleNamespace(
+        label=result["label"], display_name=DISPLAY_NAMES[result["label"]],
+        confidence=float(result["confidence"]), probs={k: float(v) for k, v in result["probs"].items()},
+        p_tumor=float(result["p_tumor"]), priority=str(result["priority"]),
+        refer=bool(result["refer"]), reasons=[str(x) for x in result.get("reasons", [])][:5],
+    )
+    return explain(r, language=language, mode=mode)
+
+
+def api_info():
+    return {"model": predictor.model_name, "test_accuracy": predictor.test_accuracy,
+            "languages": LANGUAGES, "classes": CLASSES}
+
+
 # ------------------------------------------------------------ About text
 ABOUT = f"""
 ## How this app works
@@ -223,6 +268,19 @@ with gr.Blocks(title="Brain Tumor MRI Assistant") as demo:
 
     with gr.Tab("About"):
         gr.Markdown(ABOUT)
+
+    # Hidden components that expose the JSON API for the custom website (web/).
+    with gr.Row(visible=False):
+        api_img = gr.Image(type="pil")
+        api_res_in = gr.JSON()
+        api_lang = gr.Textbox()
+        api_mode = gr.Textbox()
+        api_json_out = gr.JSON()
+        api_text_out = gr.Textbox()
+        api_info_out = gr.JSON()
+        gr.Button().click(api_analyze, api_img, api_json_out, api_name="analyze")
+        gr.Button().click(api_explain, [api_res_in, api_lang, api_mode], api_text_out, api_name="explain")
+        gr.Button().click(api_info, None, api_info_out, api_name="info")
 
 demo.queue(default_concurrency_limit=2)
 

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brain MRI Assistant</title>
+  <meta name="description" content="Student project: AI triage for brain MRI scans and simple explanations for patients." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- gradient used by the confidence rings -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6fb1f5" /><stop offset="100%" stop-color="#13294b" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h4l2-5 4 10 2-5h6" />
+        </svg>
+      </div>
+      <div>Brain MRI Assistant<small>Group 1 · student project</small></div>
+    </div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Connecting to the AI…</span></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Read urgent scans <span>first</span>.<br />Explain results <span>kindly</span>.</h1>
+      <p>An AI helper that sorts brain MRI scans for hospital staff and explains the result to patients in simple words — in their own language.</p>
+      <div class="pill-note">⚠️ Prototype for learning — not a medical device. Only a doctor can diagnose.</div>
+    </section>
+
+    <nav class="tabs" role="tablist">
+      <span class="tab-indicator" id="tabIndicator"></span>
+      <button class="tab active" data-view="triage" role="tab">🏥 <span class="lbl-long">Hospital triage</span><span class="lbl-short">Triage</span></button>
+      <button class="tab" data-view="patient" role="tab">💙 <span class="lbl-long">Understand my scan</span><span class="lbl-short">My scan</span></button>
+      <button class="tab" data-view="about" role="tab">ℹ️ <span class="lbl-long">How it works</span><span class="lbl-short">About</span></button>
+    </nav>
+
+    <!-- ================= TRIAGE ================= -->
+    <section class="view active" id="view-triage">
+      <div class="triage-top">
+        <div class="card">
+          <span class="step-label"><b>1</b> Add scans</span>
+          <h2>Today's MRI scans</h2>
+          <p class="sub">Upload up to 20 scans. The AI puts likely tumors and uncertain scans at the top.</p>
+          <label class="dropzone" id="triageDrop">
+            <input type="file" id="triageInput" accept="image/*" multiple />
+            <div>
+              <div class="dz-icon">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1e3a66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/></svg>
+              </div>
+              <div class="dz-title">Drop MRI images here</div>
+              <div class="dz-hint">or click to choose files (JPG / PNG)</div>
+            </div>
+          </label>
+          <div class="file-count" id="triageCount"></div>
+          <div class="actions">
+            <button class="btn btn-soft" id="triageSamples"><span class="btn-icon">✨</span><span class="spinner"></span>Try 12 sample scans</button>
+            <button class="btn btn-primary" id="triageRun" disabled><span class="btn-icon">⚡</span><span class="spinner"></span>Sort by priority</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="step-label"><b>2</b> Overview</span>
+          <h2>Priority summary</h2>
+          <p class="sub">Red = read first. ⚠️ = the AI is not sure, a specialist should check.</p>
+          <div class="stats">
+            <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Scans</div></div>
+            <div class="stat high"><div class="n" id="statHigh">0</div><div class="l">High priority</div></div>
+            <div class="stat review"><div class="n" id="statReview">0</div><div class="l">Need review</div></div>
+          </div>
+          <div class="progress hidden" id="triageProgress">
+            <div class="progress-track"><div class="progress-fill" id="triageFill"></div></div>
+            <div class="progress-label" id="triageLabel"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="queue" id="queue"></div>
+    </section>
+
+    <!-- ================= PATIENT ================= -->
+    <section class="view" id="view-patient">
+      <div class="grid-2">
+        <div class="card">
+          <span class="step-label"><b>1</b> Your scan</span>
+          <h2>Upload one MRI image</h2>
+          <p class="sub">Or try one of the sample scans below.</p>
+
+          <label class="dropzone" id="patientDrop">
+            <input type="file" id="patientInput" accept="image/*" />
+            <div id="patientDropInner">
+              <div class="dz-icon">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1e3a66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+              </div>
+              <div class="dz-title">Drop your MRI image here</div>
+              <div class="dz-hint">or click to choose a file</div>
+            </div>
+          </label>
+          <div class="preview-wrap hidden" id="patientPreview">
+            <img id="patientImg" alt="Selected MRI scan" />
+            <div class="scan-overlay"><div class="scan-grid"></div><div class="scan-line"></div></div>
+          </div>
+
+          <p class="section-title">Sample scans</p>
+          <div class="samples" id="patientSamples"></div>
+
+          <p class="section-title"><span class="step-label" style="margin:0"><b>2</b> Language</span></p>
+          <div class="chips" id="patientLangs"></div>
+
+          <div class="actions">
+            <button class="btn btn-primary btn-block" id="patientRun" disabled><span class="btn-icon">💬</span><span class="spinner"></span>Explain my scan</button>
+          </div>
+          <ul class="steps hidden" id="patientSteps">
+            <li data-step="0"><span class="tick">✓</span>Reading the scan</li>
+            <li data-step="1"><span class="tick">✓</span>Checking where the AI looked</li>
+            <li data-step="2"><span class="tick">✓</span>Writing a simple explanation</li>
+          </ul>
+        </div>
+
+        <div class="card" id="patientResultCard">
+          <div class="empty-state" id="patientEmpty">
+            <svg class="art" viewBox="0 0 120 120" fill="none">
+              <circle cx="60" cy="60" r="54" fill="#e6f2ff"/>
+              <circle cx="54" cy="54" r="24" stroke="#1e3a66" stroke-width="6"/>
+              <path d="M72 72l18 18" stroke="#1e3a66" stroke-width="8" stroke-linecap="round"/>
+              <path d="M44 54h6l3-7 5 14 3-7h6" stroke="#4a90e2" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3>Your result will appear here</h3>
+            <p>We explain what the AI sees, what usually happens next, and which questions you can ask your doctor.</p>
+          </div>
+          <div class="hidden" id="patientResult"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ABOUT ================= -->
+    <section class="view" id="view-about">
+      <div class="how">
+        <div class="card"><div class="num">1</div><h3>AI reads the scan</h3><p class="sub" id="aboutModel">A deep learning model looks at one MRI slice and gives the chance of glioma, meningioma, pituitary tumor, or no tumor.</p></div>
+        <div class="card"><div class="num">2</div><h3>Heatmap</h3><p class="sub">Red areas show where the AI looked. Drag the slider to compare with the original scan.</p></div>
+        <div class="card"><div class="num">3</div><h3>Safety rule</h3><p class="sub">If the AI is not sure — or says "no tumor" without being very sure — the scan is flagged for a specialist.</p></div>
+        <div class="card"><div class="num">4</div><h3>Simple words</h3><p class="sub">Gemini explains the result using only facts checked by our group. It never sees the image.</p></div>
+      </div>
+      <div class="about-cols">
+        <div class="card">
+          <h3>What it is good for</h3>
+          <ul>
+            <li>Helping busy hospitals decide which scans to read first</li>
+            <li>Helping patients understand their result and prepare questions</li>
+            <li>Explaining in English, Thai, Burmese, and Japanese</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Limitations (please read)</h3>
+          <ul>
+            <li>Trained on a public dataset of 2D MRI slices, not real hospital data</li>
+            <li>The AI can be wrong — sometimes confidently wrong</li>
+            <li>Glioma is the hardest type for the AI</li>
+            <li>Not a medical device. It does not diagnose.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- detail drawer for one triage scan -->
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <span class="step-label" id="drawerRank">Scan</span>
+      <button class="icon-btn" id="drawerClose" aria-label="Close">✕</button>
+    </div>
+    <div id="drawerBody"></div>
+  </aside>
+
+  <div class="toast" id="toast"></div>
+
+  <footer>
+    Dataset: <a href="https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset" target="_blank" rel="noopener">Brain Tumor MRI Dataset (Kaggle, CC0)</a>
+    · Group 1 student project · Not for medical use
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
