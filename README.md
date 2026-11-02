@@ -10,7 +10,8 @@ brain_tumor_project/
 │   ├── group1-braintumortraining.ipynb   ← Part A (run on Kaggle)
 │   ├── 02_safety_rule_check.py           ← extra Kaggle cell: tests the "refer" rule
 │   ├── 03_make_sample_set.py             ← extra Kaggle cell: 100-image sample set
-│   └── 04_model_comparison.ipynb         ← train 6 models, compare, pick the best
+│   ├── 04_model_comparison.ipynb         ← train 7 models (from our reference papers), compare, pick the best
+│   └── 05_seed_check.ipynb               ← re-train the top 2 with 2 more seeds (is the winner really better?)
 ├── model/
 │   └── best_model.pth                    ← trained model (Part A output)
 ├── core/                                 ← Part B: shared by all apps
@@ -19,7 +20,8 @@ brain_tumor_project/
 │   └── tumor_facts.json                  ← checked facts the LLM is allowed to use
 ├── scripts/
 │   ├── test_core.py                      ← quick test of Part B
-│   └── deploy_to_hf.py                   ← one-command deploy to Hugging Face
+│   ├── deploy_to_hf.py                   ← one-command deploy to Hugging Face
+│   └── shrink_model.py                   ← halve the model file size (GitHub limit is 100 MB)
 ├── data/samples/                         ← Kaggle Testing images (see data/README.md)
 ├── app.py                                ← final app: Triage + Patient explainer tabs
 ├── deploy/                               ← Hugging Face Space settings (README card, requirements, packages)

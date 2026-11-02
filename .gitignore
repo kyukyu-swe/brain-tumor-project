@@ -1,4 +1,4 @@
-# secrets
+# secrets — NEVER push these
 .env
 
 # Python
@@ -6,15 +6,20 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.ipynb_checkpoints/
 
 # Mac
 .DS_Store
 
-# data (too big for GitHub; each member downloads from Kaggle)
-data/samples/*/
-
+# models: only the final app model goes to GitHub (others are too big)
+*.pth
+!model/best_model.pth
 # old unzipped copy of the model (safe to delete)
 model/best_model/
+
+# Kaggle downloads / zips
+*.zip
+outputs/
 
 # test outputs
 heatmap_test.png
